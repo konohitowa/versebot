@@ -19,7 +19,7 @@ def find_verses(message_body):
         return None
     else:
         # If the versebot user is called out, then ignore this
-        if re.findall(r'\/u\/versebot|\/user\/versebot',re.IGNORECASE):
+        if re.findall(r'\/u\/versebot|\/user\/versebot',message_body, re.IGNORECASE):
             return None
         else:
             return matches
