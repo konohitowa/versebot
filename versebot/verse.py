@@ -5,15 +5,16 @@ verse.py
 Copyright (c) 2015 Matthieu Grieger (MIT License)
 """
 
-import database
-import books
+from . import database
+from . import books
 
 class Verse:
     """ Class that holds the properties and methods of a Verse object. """
 
-    def __init__(self, book, chapter, translation, user, subreddit, verse):
+    def __init__(self, database, book, chapter, translation, user, subreddit, verse):
         """ Initializes a Verse object with book, chapter, verse (if
         exists), and translation (if exists). """
+        self.database = database
         self.book = book
         self.subreddit = subreddit.lower()
         book_num = books.get_book_number(self.book)
@@ -45,12 +46,12 @@ class Verse:
             self.end_verse = 0
         if translation != "":
             trans = translation.upper().replace(" ", "")
-            if database.is_valid_translation(trans, self.bible_section):
+            if self.database.is_valid_translation(trans, self.bible_section):
                 self.translation = trans
             else:
-                self.determine_translation(user, subreddit)
+                self.translation = "RSVCE"
         else:
-            self.determine_translation(user, subreddit)
+            self.translation = "RSVCE"
 
         self.translation_title = ""
         self.contents = ""
@@ -59,11 +60,11 @@ class Verse:
     def determine_translation(self, user, subreddit):
         """ Determines which translation should be used when either the user does not provide
         a translation, or when the user provides an invalid translation. """
-        user_default = database.get_user_translation(user, self.bible_section)
+        user_default = self.database.get_user_translation(user, self.bible_section)
         if user_default:
             self.translation = user_default
         else:
-            subreddit_default = database.get_subreddit_translation(subreddit, self.bible_section)
+            subreddit_default = self.database.get_subreddit_translation(subreddit, self.bible_section)
             if subreddit_default:
                 self.translation = subreddit_default
             else:

@@ -7,7 +7,3 @@
 
 CREATE TABLE comment_count (id SERIAL PRIMARY KEY, count INTEGER DEFAULT 0, last_used TIMESTAMP WITH TIME ZONE DEFAULT NULL);
 INSERT INTO comment_count DEFAULT VALUES;
-
-CREATE TRIGGER update_comment_count_timestamp BEFORE UPDATE
-  ON comment_count FOR EACH ROW EXECUTE PROCEDURE
-  update_timestamp_column();

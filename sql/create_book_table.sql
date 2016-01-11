@@ -90,7 +90,3 @@ INSERT INTO book_stats (book) VALUES
 	('2 Esdras'),
 	('Susanna'),
 	('Bel and the Dragon');
-
-CREATE TRIGGER update_book_stats_timestamp BEFORE UPDATE
-  ON book_stats FOR EACH ROW EXECUTE PROCEDURE
-  update_timestamp_column();

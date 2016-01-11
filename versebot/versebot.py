@@ -5,67 +5,84 @@ versebot.py
 Copyright (c) 2015 Matthieu Grieger (MIT License)
 """
 
+import sys
+import re
 import praw
-import OAuth2Util
-import database
+from . import database
 import logging
-import books
+from . import books
 import requests
-from config import *
 from time import sleep
-from webparser import WebParser
-from verse import Verse
-from regex import find_verses, find_default_translations, find_subreddit_in_request
-from response import Response
+import time
+from . import webparser
+from . import verse
+from .regex import find_verses, find_default_translations, find_subreddit_in_request
+from .response import Response
 
 class VerseBot:
     """ Main VerseBot class. """
 
-    def __init__(self, username, password):
+    def __init__(self):
         """ Initializes a VerseBot object with supplied username and password. It is recommended that
         the username and password are stored in something like an environment variable for security
         reasons. """
-        logging.basicConfig(level=LOG_LEVEL)
+        logging.basicConfig(level=logging.INFO)
         self.log = logging.getLogger("versebot")
         logging.getLogger("requests").setLevel(logging.WARNING)
+        self.log.info("Connecting to database...")
+        self.d = database.Database()
+        self.d.connect(self.log,'versebot.db')  # Initialize connection to database.
+        self.log.info("Successfully connected to database!")
         try:
             self.log.info("Connecting to reddit...")
-            self.r = praw.Reddit(user_agent = ("VerseBot by /u/mgrieger. GitHub: https://github.com/matthieugrieger/versebot"))
-            self.o = OAuth2Util.OAuth2Util(self.r)
-            self.o.refresh(force=True)
+            self.r = praw.Reddit(user_agent = ("VerseBot by /u/mgrieger, running as Catebot. GitHub: https://github.com/konohitowa/versebot"))
+            self.r.login(self.d.username(), self.d.password())
         except Exception as err:
             self.log.critical("Exception: %s", err) 
             self.log.critical("Connection to reddit failed. Exiting...")
             exit(1)
         self.log.info("Successfully connected to reddit!")
-        self.log.info("Connecting to database...")
-        database.connect(self.log)  # Initialize connection to database.
-        self.log.info("Successfully connected to database!")
-        self.parser = WebParser()  # Initialize web parser with updated translation list.
+        self.parser = webparser.WebParser()  # Initialize web parser with updated translation list.
         self.log.info("Updating translation list table...")
-        database.update_translation_list(self.parser.translations)
+        self.d.update_translation_list(self.parser.translations)
         self.log.info("Translation list update successful!")
-        self.log.info("Cleaning old user translation entries...")
-        database.clean_user_translations()
-        self.log.info("User translation cleaning successful!")
+        #self.log.info("Cleaning old user translation entries...")
+        #self.d.clean_user_translations()
+        #self.log.info("User translation cleaning successful!")
 
     def main_loop(self):
         """ Main inbox searching loop for finding verse quotation requests. """
-        self.log.info("Beginning to scan for new inbox messages...")
+        self.log.info("Beginning to scan for new  messages...")
+
+        processedComments = list()
+        print('Beginning to scan comments...')
+        # This loop runs every 30 seconds.
         while True:
-            messages = self.r.get_unread()
-            for message in messages:
-                if message.subject == "username mention":
-                    self.respond_to_username_mention(message)
-                elif message.subject == "edit request":
-                    self.respond_to_edit_request(message)
-                elif message.subject == "delete request":
-                    self.respond_to_delete_request(message)
-                elif message.subject == "user translation default request":
-                    self.respond_to_user_translation_request(message)
-                elif message.subject == "subreddit translation default request":
-                    self.respond_to_subreddit_translation_request(message)
-                message.mark_as_read()
+            processedComments = self.d.comments()
+            subreddit_handle = self.r.get_subreddit(self.d.subreddits())
+            subreddit_comments = subreddit_handle.get_comments()
+            try:
+                for comment in subreddit_comments:
+                    if comment.author.name != self.d.username() and comment.id not in processedComments:
+                        lines = re.split('\n',comment.body)
+                        body = ""
+                        for line in lines:
+                            if not re.match(r'^\s{,3}>', line):
+                                body += line + '\n'
+                        comment.body = body
+                        self.respond_to_username_mention(comment)
+                        try:
+                            self.d.add_comment(comment_id=comment.id,utc_time=int(time.time()))
+                            self.log.info(comment.id+","+comment.author.name)
+                        except:
+                            print("insert failed")
+                            self.log.error("Database insert failed. %s " % str(sys.exc_info()[0]))
+                            exit()
+            
+            except requests.exceptions.HTTPError:
+                print("HTTPError")
+                self.log.info("HTTP Error: waiting 5 minutes to retry: %s " % str(sys.exc_info()[0]))
+                sleep(5*60 - timeToWait)
             sleep(30)
 
     def respond_to_username_mention(self, message):
@@ -78,38 +95,32 @@ class VerseBot:
         verses = find_verses(message.body)
         if verses is not None:
             response = Response(message, self.parser)
-            for verse in verses:
-                book_name = books.get_book(verse[0])
+            for v in verses:
+                book_name = books.get_book(v[0])
                 if book_name is not None:
-                    v = Verse(book_name,  # Book
-                        verse[1],  # Chapter
-                        verse[3],  # Translation
+                    v2 = verse.Verse(self.d, # Database
+                        book_name,  # Book
+                        v[1],  # Chapter
+                        v[3],  # Translation
                         message.author,  # User
                         message.permalink[24:message.permalink.find("/", 24)],  # Subreddit
-                        verse[2])  # Verse
-                    if not response.is_duplicate_verse(v):
-                        response.add_verse(v)
+                        v[2])  # Verse
+                    if not response.is_duplicate_verse(v2):
+                        response.add_verse(v2)
             if len(response.verse_list) != 0:
                 message_response = response.construct_message()
                 if message_response is not None:
                     self.log.info("Replying to %s with verse quotations..." % message.author)
                     try:
                         message.reply(message_response)
-                        database.update_db_stats(response.verse_list)
-                        database.increment_comment_count()
+#                        self.d.update_db_stats(response.verse_list)
+#                        self.d.increment_comment_count()
                     except praw.errors.Forbidden as err:
                         # This message is unreachable.
                         pass
                     except praw.errors.APIException as err:
                         if err.error_type in ("TOO_OLD", "DELETED_LINK", "DELETED_COMMENT"):
                             self.log.warning("An error occurred while replying with error_type %s." % err.error_type)
-        else:
-            self.log.info("No verses found in this message. Forwarding to /u/%s..." % VERSEBOT_ADMIN)
-            try:
-                self.r.send_message(VERSEBOT_ADMIN, "Forwarded VerseBot Message",
-                    "%s\n\n[[Link to Original Message](%s)]" % (message.body, message.permalink))
-            except requests.exceptions.ConnectionError:
-                pass
 
     def respond_to_edit_request(self, message):
         """ Responds to an edit request. The bot will parse the body of the message, looking for verse
@@ -141,7 +152,7 @@ class VerseBot:
                             for verse in verses:
                                 book_name = books.get_book(verse[0])
                                 if book_name is not None:
-                                    v = Verse(book_name,  # Book
+                                    v = verse.Verse(book_name,  # Book
                                         verse[1],  # Chapter
                                         verse[3],  # Translation
                                         message.author,  # User
@@ -154,9 +165,9 @@ class VerseBot:
                                 message_response += response.construct_message()
                                 if message_response is not None:
                                     self.log.info("Editing %s's comment with updated verse quotations..." % message.author)
-                                    database.remove_invalid_statistics(reply.body, link)
+                                    self.d.remove_invalid_statistics(reply.body, link)
                                     reply.edit(message_response)
-                                    database.update_db_stats(response.verse_list)
+                                    self.d.update_db_stats(response.verse_list)
                                     try:
                                         message.reply("[Your triggered %s response](%s) has been successfully edited to reflect"
                                             " your updated quotations." % (REDDIT_USERNAME, comment_url))
@@ -192,8 +203,8 @@ class VerseBot:
                     try:
                         self.log.info("%s has requested a comment deletion..." % comment.author)
                         link = reply.permalink[24:comment.permalink.find("/", 24)]
-                        database.remove_invalid_statistics(reply.body, link)
-                        database.decrement_comment_count()
+                        self.d.remove_invalid_statistics(reply.body, link)
+                        self.d.decrement_comment_count()
                         reply.delete()
                         self.log.info("%s's comment has been deleted." % comment.author)
                         try:
@@ -213,10 +224,10 @@ class VerseBot:
 
         ot_trans, nt_trans, deut_trans = find_default_translations(message.body)
         if None not in (ot_trans, nt_trans, deut_trans):
-            if (database.is_valid_translation(ot_trans, "Old Testament")
-                and database.is_valid_translation(nt_trans, "New Testament")
-                and database.is_valid_translation(deut_trans, "Deuterocanon")):
-                database.update_user_translation(str(message.author), ot_trans, nt_trans, deut_trans)
+            if (self.d.is_valid_translation(ot_trans, "Old Testament")
+                and self.d.is_valid_translation(nt_trans, "New Testament")
+                and self.d.is_valid_translation(deut_trans, "Deuterocanon")):
+                self.d.update_user_translation(str(message.author), ot_trans, nt_trans, deut_trans)
                 self.log.info("Updated default translations for %s." % message.author)
                 try:
                     message.reply("Your default translations have been updated successfully!")
@@ -247,10 +258,10 @@ class VerseBot:
             if message.author in self.r.get_moderators(subreddit):
                 ot_trans, nt_trans, deut_trans = find_default_translations(message.body)
                 if None not in (ot_trans, nt_trans, deut_trans):
-                    if (database.is_valid_translation(ot_trans, "Old Testament")
-                        and database.is_valid_translation(nt_trans, "New Testament")
-                        and database.is_valid_translation(deut_trans, "Deuterocanon")):
-                        database.update_subreddit_translation(subreddit, ot_trans, nt_trans, deut_trans)
+                    if (self.d.is_valid_translation(ot_trans, "Old Testament")
+                        and self.d.is_valid_translation(nt_trans, "New Testament")
+                        and self.d.is_valid_translation(deut_trans, "Deuterocanon")):
+                        self.d.update_subreddit_translation(subreddit, ot_trans, nt_trans, deut_trans)
                         self.log.info("Updated default translations for /r/%s." % subreddit)
                         try:
                             self.r.send_message("/r/%s" % subreddit, "/r/%s Default Translation Change Confirmation" % subreddit,
@@ -284,8 +295,3 @@ class VerseBot:
                 message.reply("The subreddit you entered (/r/%s) does not exist or is private." % subreddit)
             except requests.exceptions.ConnectionError:
                 pass
-
-
-bot = VerseBot(REDDIT_USERNAME, REDDIT_PASSWORD)
-if __name__ == "__main__":
-    bot.main_loop()

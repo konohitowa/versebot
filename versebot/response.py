@@ -5,8 +5,6 @@ response.py
 Copyright (c) 2015 Matthieu Grieger (MIT License)
 """
 
-from config import REDDIT_USERNAME, MAXIMUM_MESSAGE_LENGTH
-
 class Response:
     """ Class that holds the properties and methods of a comment
     response. """
@@ -61,16 +59,16 @@ class Response:
         """ Returns true if the current response exceeds the maximum comment
         length, returns false otherwise. """
 
-        return len(self.response) > MAXIMUM_MESSAGE_LENGTH
+        return len(self.response) > 6000
 
     def generate_overflow_response(self):
         """ Constructs and generates an overflow comment whenever the comment
-        exceeds the character limit set by MAXIMUM_MESSAGE_LENGTH. Instead of posting
+        exceeds the character limit set by 6000. Instead of posting
         the contents of the verse(s) in the comment, it links to webpages that contain
         the contents of the verse(s). """
 
         comment = ("The contents of the verse(s) you quoted exceed the %d character limit."
-        " Instead, here are links to the verse(s)!\n\n" % MAXIMUM_MESSAGE_LENGTH)
+        " Instead, here are links to the verse(s)!\n\n" % 6000)
 
         for verse in self.verse_list:
             if verse.translation == "JPS":
@@ -93,15 +91,9 @@ class Response:
 
     def get_comment_footer(self):
         """ Returns the footer for the comment. """
-        return ("\n***\n[^Code](https://github.com/matthieugrieger/versebot) ^|"
-            " ^/r/VerseBot ^| [^Contact ^Dev](/message/compose/?to=mgrieger) ^|"
-            " [^Usage](https://github.com/matthieugrieger/versebot/blob/master/README.md) ^|"
-            " [^Changelog](https://github.com/matthieugrieger/versebot/blob/master/CHANGELOG.md) ^|"
-            " [^Stats](http://matthieugrieger.com/versebot) ^|"
-            " [^Set ^a ^Default ^Translation](http://matthieugrieger.com/versebot#defaults) \n\n"
-            "^All ^texts ^provided ^by [^BibleGateway](http://biblegateway.com) ^and [^Bible ^Hub](http://biblehub.com)^. \n\n"
-            " ^Mistake? ^%(user)s ^can [^edit](/message/compose/?to=%(bot)s&subject=edit+request&message={%(link)s} "
-            "Please+enter+your+revised+verse+quotations+below+in+the+usual+bracketed+syntax.)"
-            " ^or [^delete](/message/compose/?to=%(bot)s&subject=delete+request&message={%(link)s} "
-            "This+action+cannot+be+reversed!) ^this ^comment."
-            % {"user":self.message.author, "bot":REDDIT_USERNAME, "link":self.link})
+        return ("\n***\n[^Code](https://github.com/konohitowa/versebot) ^|"
+            " [^Contact ^Dev](/message/compose/?to=konohitowa) ^|"
+            " [^Usage](https://github.com/konohitowa/versebot/blob/master/README.md) ^|"
+            " [^Changelog](https://github.com/konohitowa/versebot/blob/master/CHANGELOG.md) ^|"
+            " ^All ^texts ^provided ^by [^BibleGateway](http://biblegateway.com) ^and [^Bible ^Hub](http://biblehub.com)^. \n\n"
+            )

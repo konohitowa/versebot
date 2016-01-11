@@ -1,18 +1,29 @@
-![VerseBot](http://i.imgur.com/zzFkW5g.png)
+![VerseCateBot](http://i.imgur.com/zzFkW5g.png)
 
 **A reddit bot that posts Bible verses when asked to.**
 
+* [Where It Runs](#where)
 * [Usage](#usage)
   * [Making Verse Quotations](#making-verse-quotations)
-  * [Editing/Deleting a VerseBot Comment](#editingdeleting-a-versebot-comment)
   * [Setting a Default Translation](#setting-a-default-translation)
 * [Authors](#authors)
 * [License](#license)
 * [Thanks](#thanks)
 
+## WHERE
+VerseCateBot runs only on the following public subreddits:
+
+	* /r/Catholicism
+	* /r/Christianity
+	* /r/TelaIgne
+	* /r/3OP
+	* /r/DebateACatholic
+	* /r/Judaism
+	* /r/TrueChristian
+
 ## USAGE
 ### Making Verse Quotations
-VerseBot is triggered by username mentions. Verse quotations are enclosed in brackets ([]), and may specify a desired translation within. A VerseBot quotation must follow one of the following formats (in each case the translation is optional):
+VerseCateBot is triggered by verse quotations on specific subreddits. Verse quotations are enclosed in brackets ([]), and may specify a desired translation within. A VerseCateBot quotation must follow one of the following formats (in each case the translation is optional):
 
 ```
 [Book Chapter Translation]
@@ -20,32 +31,16 @@ VerseBot is triggered by username mentions. Verse quotations are enclosed in bra
 [Book Chapter:StartVerse-EndVerse Translation]
 ```
 
-More quotation formats will be implemented in the future.
-
-### Editing/Deleting a VerseBot Comment
-VerseBot comments can be easily edited or deleted by clicking on the "edit" or "delete" links that can be found at the bottom of every VerseBot comment. Only the user who triggered the VerseBot response can edit or delete the comment.
-
 ### Setting a Default Translation
-A default translation is the translation VerseBot defaults to for a particular user or subreddit. This means that a user/subreddit can specify a default translation, and the user(s) do not need to place the abbreviation for the translation within their comment.
+A default translation is the translation VerseCateBot defaults to for a particular subreddit. This means that a subreddit can specify a default translation, and the user(s) do not need to place the abbreviation for the translation within their comment.
 
-Translation defaults are prioritized in the following order:
+Default translations for a subreddit can be set by sending a request to /u/kono_hito_wa (the operator of VerseCateBot). Either send a message to /u/kono_hito_wa or click the "Set Default Translation" link on a VerseCateBot response and request a default translation. These are not automatic. User /u/kono_hito_wa will manually make these changes. so it could take a while. Sorry for the inconvenice. This is really a combination of issue with the VerseBot code and my (/u/kono_hito_wa) time for this. I will respond to you when I receive your request, and I will respond to you when I have made the change, so don't stress out if you don't hear from me right away.
 
-1) User Translation
-
-2) Subreddit Translation
-
-3) VerseBot Translation
-
-Default translations can be set by visiting the [Default Translations section](http://matthieugrieger/versebot/#defaults) of the VerseBot website.
-
-There are two types of default translations that can be set:
-
-1) *User Translations* -- A set of default translations for a reddit user. Note that user default translations that have not been used for 90 days or more will be deleted to save on database storage space.
-
-2) *Subreddit Translations* -- A set of default translations for a subreddit. This type of default translation **must** be set by a moderator of the subreddit, otherwise VerseBot will simply ignore the request. Subreddit default translations never expire.
+When requesting a default translation for a subreddit, the requester **must** be a moderator of the subreddit, otherwise I will simply ignore the request. Subreddit default translations never expire.
 
 ## AUTHORS
-[Matthieu Grieger](http://matthieugrieger.com)
+[kono_hito_wa](http://reddit.com/u/kono_hito_wa).
+Derived from code written by [Matthieu Grieger](http://matthieugrieger.com), although the code at this point has been transffered to https://github.com/Team-VerseBot/versebot.
 
 ## LICENSE
 	The MIT License (MIT)
@@ -71,6 +66,6 @@ There are two types of default translations that can be set:
 	THE SOFTWARE.
 
 ## THANKS
-* [BibleGateway](http://www.biblegateway.com) and [Bible Hub](http://biblehub.com/) for being the sources of all texts posted by VerseBot.  
+* [BibleGateway](http://www.biblegateway.com) and [Bible Hub](http://biblehub.com/) for being the sources of all texts posted by VerseCateBot.  
 * [All those who contribute](https://github.com/praw-dev/praw/graphs/contributors) to [PRAW (Python Reddit API Wrapper)](https://github.com/praw-dev/praw).
-* [Adam Grieger](https://github.com/adamgrieger) for the awesome VerseBot image at the top of this README.
+* [Adam Grieger](https://github.com/adamgrieger) for the awesome VerseCateBot image at the top of this README.

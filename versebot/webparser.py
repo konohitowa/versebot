@@ -9,7 +9,7 @@ from warnings import filterwarnings
 filterwarnings("ignore", category=DeprecationWarning)
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
-from translation import Translation
+from . import translation
 import re
 
 class WebParser:
@@ -30,7 +30,7 @@ class WebParser:
         translations = list()
 
         page = urlopen(url)
-        soup = BeautifulSoup(page.read())
+        soup = BeautifulSoup(page.read(),"html.parser")
 
         trans = soup.findAll("tr", {"class":"language-row"})
         for t in trans:
@@ -57,11 +57,11 @@ class WebParser:
                     t_has_ot = True
                     t_has_nt = True
                     t_has_deut = False
-                new_trans = Translation(t_name, t_abbreviation, t_language, t_has_ot, t_has_nt, t_has_deut)
+                new_trans = translation.Translation(t_name, t_abbreviation, t_language, t_has_ot, t_has_nt, t_has_deut)
                 translations.append(new_trans)
 
         # Add local translations to supported translations list
-        translations.append(Translation("JPS Tanakh", "JPS", "en", True, False, False))
+        translations.append(translation.Translation("JPS Tanakh", "JPS", "en", True, False, False))
 
         return translations
 

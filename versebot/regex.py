@@ -18,7 +18,11 @@ def find_verses(message_body):
     if len(matches) == 0:
         return None
     else:
-        return matches
+        # If the versebot user is called out, then ignore this
+        if re.findall(r'\/u\/versebot|\/user\/versebot',re.IGNORECASE):
+            return None
+        else:
+            return matches
 
 
 def find_already_quoted_verses(message_body):
